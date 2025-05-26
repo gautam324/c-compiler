@@ -1,5 +1,25 @@
 "use strict";
 
+
+// Expand this to cover all node types
+const NodeLabels = {
+  1: "Program",
+  9: "BlockStatement",
+  20: "FunctionDeclaration",
+  21: "VariableDeclaration",
+  26: "Identifier",
+  2: "AssignmentExpression",
+  10: "ReturnStatement",
+  6: "CallExpression",
+  4: "UnaryExpression",
+  23: "Parameter",
+  62: "int",
+  68: "void",
+  37: "Identifier",
+  41: "NumericLiteral",
+  // Add more mappings based on your Nodes enum
+};
+
 function isBinaryOperator(token) {
   let kind = token.kind;
   return (

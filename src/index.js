@@ -39,11 +39,11 @@ function compile(str, imports, sync) {
   currentHeapOffset = 0;
 
   // process
-  let tkns = scan(str);
+    let tkns = scan(str);
   let ast = parse(tkns);
-  emit(ast);
-  let buffer = new Uint8Array(bytes);
-  let dump = hexDump(buffer);
+   emit(ast);
+ let buffer = new Uint8Array(bytes);
+ let dump = hexDump(buffer);
 
   // output
   if (sync === true) {
@@ -62,13 +62,14 @@ function compile(str, imports, sync) {
     WebAssembly.instantiate(buffer).then((result) => {
       let instance = result.instance;
       resolve({
-        ast: ast,
-        dump: dump,
-        buffer: buffer,
-        memory: instance.exports.memory,
-        instance: instance,
-        exports: instance.exports
-      });
+       ast: ast,
+      dump: dump,
+      buffer: buffer,
+      tokens: tkns,
+      memory: instance.exports.memory,
+      instance: instance,
+      exports: instance.exports
+    });
     });
   });
 };
@@ -82,4 +83,44 @@ if (typeof module === "object" && module.exports) {
 }
 else if (typeof window !== "undefined") {
   window.MOMO = momo;
+}
+
+
+function formatAST(node, depth = 0) {
+  let output = '';
+  const indent = '  '.repeat(depth);
+  
+  if (node && typeof node === 'object') {
+    output += `${indent}↳ ${NodeLabels[node.kind] || 'Node'} `;
+    
+    // Show important fields
+    const fields = [];
+    if (node.id) fields.push(`name: ${node.id}`);
+    if (node.type) fields.push(`type: ${NodeLabels[node.type] || node.type}`);
+    if (node.operator) fields.push(`operator: ${node.operator}`);
+    if (node.value) fields.push(`value: ${node.value}`);
+    
+    if (fields.length > 0) {
+      output += `(${fields.join(', ')})`;
+    }
+    
+    output += '\n';
+    
+    // Recursively format children
+    for (const key in node) {
+      if (key === 'kind' || key === 'type' || key === 'id') continue;
+      
+      if (Array.isArray(node[key])) {
+        output += `${indent}  ∟ ${key}:\n`;
+        node[key].forEach(child => {
+          output += formatAST(child, depth + 2);
+        });
+      } else if (typeof node[key] === 'object') {
+        output += `${indent}  ∟ ${key}:\n`;
+        output += formatAST(node[key], depth + 2);
+      }
+    }
+  }
+  
+  return output;
 }

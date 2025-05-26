@@ -1,5 +1,6 @@
 "use strict";
 
+
 function isBlank(cc) {
   return (
     cc === 9 ||
@@ -9,6 +10,7 @@ function isBlank(cc) {
     cc === 160
   );
 };
+
 
 function isQuote(cc) {
   return (

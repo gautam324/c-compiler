@@ -1,6 +1,11 @@
 "use strict";
 
 class ByteArray extends Array {
+  constructor() {
+    super();
+    // Ensure proper byte storage
+    this.offset = 0;
+  }
   emitU8(value) {
     this.push(value & 0xff);
   }
