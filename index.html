@@ -125,60 +125,68 @@
     }
 
     .output-area {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-/* Add these styles for the new AST textarea */
-#ast {
-  width: 100%;
-  height: 200px;
-  resize: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-family: monospace;
-  padding: 10px;
-}
-/* AST Visualization */
-.ast-container {
-  font-family: 'Fira Code', monospace;
-  background: #f8f9fa;
-  border: 1px solid #ced4da;
-  padding: 10px;
-  border-radius: 4px;
-  overflow: auto;
-  max-height: 400px;
-}
-.ast-node {
-  margin-left: 1em;
-  position: relative;
-}
-.ast-node::before {
-  content: '';
-  position: absolute;
-  left: -0.8em;
-  top: 0.6em;
-  width: 0.5em;
-  height: 0.5em;
-  border-left: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-}
-.ast-label {
-  font-weight: bold;
-  color: #2c3e50;
-  cursor: pointer;
-}
-.ast-fields {
-  margin-left: 1em;
-  color: #555;
-}
-.ast-children {
-  margin-top: 4px;
-}
-.collapsed > .ast-children {
-  display: none;
-}
+    /* Add these styles for the new AST textarea */
+    #ast {
+      width: 100%;
+      height: 200px;
+      resize: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: monospace;
+      padding: 10px;
+    }
+    
+    /* AST Visualization */
+    .ast-container {
+      font-family: 'Fira Code', monospace;
+      background: #f8f9fa;
+      border: 1px solid #ced4da;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 400px;
+    }
+    .ast-node {
+      margin-left: 1em;
+      position: relative;
+    }
+    .ast-node::before {
+      content: '';
+      position: absolute;
+      left: -0.8em;
+      top: 0.6em;
+      width: 0.5em;
+      height: 0.5em;
+      border-left: 1px solid #ccc;
+      border-bottom: 1px solid #ccc;
+    }
+    .ast-label {
+      font-weight: bold;
+      color: #2c3e50;
+      cursor: pointer;
+    }
+    .ast-fields {
+      margin-left: 1em;
+      color: #555;
+    }
+    .ast-children {
+      margin-top: 4px;
+    }
+    .collapsed > .ast-children {
+      display: none;
+    }
+    .output-area h3 {
+      margin-top: 16px;
+      margin-bottom: 4px;
+      font-size: 16px;
+      color: #333;
+      font-weight: bold;
+    }
 
   </style>
 </head>
@@ -187,24 +195,41 @@
     <h1>Mini C Compiler</h1>
   </header>
   <main>
-    <div class="editor-container">
-      <div id="code" class="code-area"></div>
-      <div class="controls">
-        <button id="cmp">Compile</button>
-        <div class="output-area">
-         <input type="text" id="output" placeholder="Output" readonly />
-  <textarea id="buffer" readonly></textarea>
-  <textarea id="tokens" readonly placeholder="Tokens (lexical analysis)" style="height: 150px; resize: none;"></textarea>
-  <!-- Add this after the tokens textarea -->
-<div id="ast" class="ast-container"></div>        
-</div>
-      </div>
-      <div class="stats">
-        <i id="celapsed">Compile time: -- ms</i>
-        <i id="elapsed">Execution time: -- ms</i>
+  <div class="editor-container">
+    <div id="code" class="code-area"></div>
+
+    <div class="controls">
+      <button id="cmp">Compile</button>
+
+      <div class="output-area">
+
+        <!-- Output (Final Result) -->
+        <h3>Final Output</h3>
+        <input type="text" id="output" placeholder="Output" readonly />
+
+        <!-- Phase 1: Lexical Analysis -->
+        <h3>Lexical Analysis</h3>
+        <textarea id="tokens" readonly placeholder="Tokens" style="height: 150px; resize: none;"></textarea>
+
+        <!-- Phase 2: Syntax Analysis / AST -->
+        <h3>Abstract Syntax Tree (Parsing)</h3>
+        <div id="ast" class="ast-container"></div>
+
+        <!-- Optional Buffer Display -->
+        <h3>WebAssembly Binary (Code Generation)</h3>
+        <textarea id="buffer" readonly></textarea>
+
       </div>
     </div>
-  </main>
+
+    <!-- Timing Statistics -->
+    <div class="stats">
+      <i id="celapsed">Compile time: -- ms</i>
+      <i id="elapsed">Execution time: -- ms</i>
+    </div>
+  </div>
+</main>
+
 
   <script>
     if (typeof WebAssembly === 'undefined') {
@@ -234,53 +259,51 @@
   </script>
 
   <script>
-function renderAST(node) {
-  const container = document.createElement('div');
-  container.className = 'ast-node';
+    function renderAST(node) {
+      const container = document.createElement('div');
+      container.className = 'ast-node';
 
-  // Label
-  const label = document.createElement('div');
-  label.className = 'ast-label';
-  label.textContent = NodeLabels[node.kind] || `Node(${node.kind})`;
-  container.appendChild(label);
+      // Label
+      const label = document.createElement('div');
+      label.className = 'ast-label';
+      label.textContent = NodeLabels[node.kind] || `Node(${node.kind})`;
+      container.appendChild(label);
 
-  // Primitive fields
-  const fields = [];
-  if (node.id)        fields.push(`name: ${node.id}`);
-  if (node.type)      fields.push(`type: ${NodeLabels[node.type] || node.type}`);
-  if (node.operator)  fields.push(`operator: ${node.operator}`);
-  if (node.value != null && (typeof node.value === 'string' || typeof node.value === 'number')) {
-    fields.push(`value: ${node.value}`);
-  }
-  if (fields.length) {
-    const fd = document.createElement('div');
-    fd.className = 'ast-fields';
-    fd.textContent = fields.join(', ');
-    container.appendChild(fd);
-  }
+      // Primitive fields
+      const fields = [];
+      if (node.id)        fields.push(`name: ${node.id}`);
+      if (node.type)      fields.push(`type: ${NodeLabels[node.type] || node.type}`);
+      if (node.operator)  fields.push(`operator: ${node.operator}`);
+      if (node.value != null && (typeof node.value === 'string' || typeof node.value === 'number')) {
+        fields.push(`value: ${node.value}`);
+      }
+      if (fields.length) {
+        const fd = document.createElement('div');
+        fd.className = 'ast-fields';
+        fd.textContent = fields.join(', ');
+        container.appendChild(fd);
+      }
 
-  // Children
-  const kids = document.createElement('div');
-  kids.className = 'ast-children';
-  Object.entries(node).forEach(([key, val]) => {
-    if (['kind','id','type','operator','value','parent','scope','context','index','offset','dump'].includes(key)) return;
-    if (Array.isArray(val)) {
-      val.forEach(child => { kids.appendChild(renderAST(child)); });
-    } else if (val && typeof val === 'object') {
-      kids.appendChild(renderAST(val));
+      // Children
+      const kids = document.createElement('div');
+      kids.className = 'ast-children';
+      Object.entries(node).forEach(([key, val]) => {
+        if (['kind','id','type','operator','value','parent','scope','context','index','offset','dump'].includes(key)) return;
+        if (Array.isArray(val)) {
+          val.forEach(child => { kids.appendChild(renderAST(child)); });
+        } else if (val && typeof val === 'object') {
+          kids.appendChild(renderAST(val));
+        }
+      });
+
+      if (kids.children.length) {
+        container.appendChild(kids);
+        label.onclick = () => container.classList.toggle('collapsed');
+      }
+
+      return container;
     }
-  });
-
-  if (kids.children.length) {
-    container.appendChild(kids);
-    label.onclick = () => container.classList.toggle('collapsed');
-  }
-
-  return container;
-}
-
-
-    </script>
+  </script>
 
   <script>
     window.memoryDumpLimit = 32;
@@ -294,10 +317,10 @@ function renderAST(node) {
         log: function() { console.log.apply(console, arguments); }
       };
       let cnow = performance.now();
-       compile(code, _import).then(result => {
-      //console.log(result.ast);
-       let cthen = performance.now();
-       document.getElementById("buffer").value = result.dump;
+      compile(code, _import).then(result => {
+        let cthen = performance.now();
+        document.getElementById("buffer").value = result.dump;
+        
         // Display tokens
         let tokensText = result.tokens
           .map(tok => `${tok.line}:${tok.column} \t [${tok.kind}] \t '${tok.value}'`)
@@ -305,37 +328,9 @@ function renderAST(node) {
         document.getElementById("tokens").value = tokensText;
 
         const astContainer = document.getElementById('ast');
-    astContainer.innerHTML = '';
-    // render new
-    astContainer.appendChild(renderAST(result.ast));
-
-
-        // const astText = JSON.stringify(result.ast, (key, value) => {
-        //   // Convert kind numbers to labels
-        //   if (key === 'kind') return NodeLabels[value] || value;
-          
-        //   // Simplify type display
-        //   if (key === 'type' && typeof value === 'number') {
-        //     return NodeLabels[value] || value;
-        //   }
-          
-        //   // Filter technical fields
-        //   if (['parent', 'context', 'scope', 'index', 'offset'].includes(key)) {
-        //     return undefined;
-        //   }
-          
-        //   // Shorten long values
-        //   if (key === 'dump' && value.length > 100) {
-        //     return value.substring(0, 100) + "...";
-        //   }
-          
-        //   return value;
-        // }, 2);
-
-        // document.getElementById("ast").value = astText;
-        
-        // // In the click handler:
-        // document.getElementById("ast").value = formatAST(result.ast);
+        astContainer.innerHTML = '';
+        // render new
+        astContainer.appendChild(renderAST(result.ast));
 
         let main = result.exports.main;
         let memory = new Uint8Array(result.memory.buffer);
